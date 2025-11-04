@@ -1,0 +1,5 @@
+# Install PyTorch for Jetson first:
+# python -m pip install torch torchvision torchaudio --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v60/pytorch/
+
+# Then install other requirements:
+# pip install -r requirements.txt
