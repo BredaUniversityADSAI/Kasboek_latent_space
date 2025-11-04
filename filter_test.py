@@ -27,18 +27,35 @@ pose = mp_pose.Pose(
 
 print("✓ MediaPipe loaded successfully!\n")
 
-# Open webcam
-cap = cv2.VideoCapture(0)
+# Try to find and open webcam
+print("Searching for webcam...")
+cap = None
+for camera_idx in range(10):  # Try indices 0-9
+    print(f"Trying camera index {camera_idx}...")
+    test_cap = cv2.VideoCapture(camera_idx)
+    if test_cap.isOpened():
+        ret, test_frame = test_cap.read()
+        if ret:
+            print(f"✓ Found working camera at index {camera_idx}!")
+            cap = test_cap
+            break
+        else:
+            test_cap.release()
+    else:
+        test_cap.release()
 
-if not cap.isOpened():
-    print("ERROR: Cannot open webcam!")
-    print("Try changing VideoCapture(0) to VideoCapture(1)")
+if cap is None:
+    print("\nERROR: No working webcam found!")
+    print("Please check:")
+    print("  - Camera is connected")
+    print("  - Camera permissions are granted")
+    print("  - No other application is using the camera")
     exit()
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-print("="*60)
+print("\n" + "="*60)
 print("FILTERS:")
 print("  0 - Blue Background")
 print("  1 - Face Outline (Neon Green)")
