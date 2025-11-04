@@ -25,7 +25,7 @@ Controls while running:
 - s : toggle saccade logging to CSV
 
 Notes:
-- Calibration helps a lot: sit naturally looking at the center of the screen and press 'c'.
+- Calibration helps a lot: sit naturally looking at the camera and press 'c'.
 - If vertical detection is still unreliable, run calibration and look slightly up/down while calibrating extremes (future enhancement).
 
 """
