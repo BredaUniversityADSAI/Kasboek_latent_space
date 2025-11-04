@@ -98,9 +98,13 @@ print("  Press ESC - Quit")
 print("="*60)
 print("\nWebcam active. Toggle filters with keys!\n")
 
-# Active filters dictionary
-active_filters = {i: False for i in range(10)}
-active_filters.update({chr(ord('a') + i): False for i in range(20)})
+# Active filters dictionary - FIXED to include all keys
+active_filters = {}
+for i in range(10):
+    active_filters[i] = False
+# Add all letter keys a-u (skipping 'r' which is for reset)
+for letter in 'abcdefghijklmnopqstu':
+    active_filters[letter] = False
 
 # Global variables for animated filters
 frame_count = 0
@@ -267,19 +271,17 @@ def apply_filter_e(frame):
     inverted = cv2.bitwise_not(frame)
     gray = cv2.cvtColor(inverted, cv2.COLOR_BGR2GRAY)
     xray = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    xray[:, :, 1] = xray[:, :, 1] // 2  # Reduce green
+    xray[:, :, 1] = xray[:, :, 1] // 2
     return xray
 
 def apply_filter_f(frame):
     """Vintage Film"""
-    # Sepia tone
     kernel = np.array([[0.272, 0.534, 0.131],
                        [0.349, 0.686, 0.168],
                        [0.393, 0.769, 0.189]])
     sepia = cv2.transform(frame, kernel)
     sepia = np.clip(sepia, 0, 255).astype(np.uint8)
     
-    # Add noise
     noise = np.random.randint(0, 20, frame.shape, dtype=np.uint8)
     sepia = cv2.add(sepia, noise)
     
@@ -290,9 +292,9 @@ def apply_filter_g(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 100, 200)
     edges_colored = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
-    edges_colored[:, :, 0] = edges  # Blue
-    edges_colored[:, :, 1] = edges  # Green
-    edges_colored[:, :, 2] = 0      # No red
+    edges_colored[:, :, 0] = edges
+    edges_colored[:, :, 1] = edges
+    edges_colored[:, :, 2] = 0
     
     glow = cv2.GaussianBlur(edges_colored, (9, 9), 0)
     return cv2.addWeighted(frame, 0.6, glow, 0.8, 0)
@@ -302,7 +304,6 @@ def apply_filter_h(frame, mask):
     h, w = frame.shape[:2]
     stars = np.zeros(frame.shape, dtype=np.uint8)
     
-    # Generate stars based on frame count for animation
     np.random.seed(int(time.time() * 10) % 1000)
     num_stars = 200
     for _ in range(num_stars):
@@ -319,10 +320,7 @@ def apply_filter_i(frame):
     h, w = frame.shape[:2]
     result = frame.copy()
     
-    # Shift red channel right
     result[:-3, :-3, 2] = frame[3:, 3:, 2]
-    
-    # Shift blue channel left
     result[3:, 3:, 0] = frame[:-3, :-3, 0]
     
     return result
@@ -335,13 +333,11 @@ def apply_filter_k(frame):
     """Vaporwave Aesthetic"""
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
-    # Shift to pink/cyan colors
     hsv[:, :, 0] = (hsv[:, :, 0] + 150) % 180
     hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 1.5, 0, 255)
     
     vaporwave = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
     
-    # Add grid lines
     h, w = vaporwave.shape[:2]
     for y in range(0, h, 20):
         cv2.line(vaporwave, (0, y), (w, y), (255, 0, 255), 1)
@@ -353,7 +349,6 @@ def apply_filter_l(frame):
     result = frame.copy()
     h, w = result.shape[:2]
     
-    # Random horizontal line shifts
     for _ in range(5):
         y = np.random.randint(0, h - 20)
         shift = np.random.randint(-30, 30)
@@ -362,7 +357,6 @@ def apply_filter_l(frame):
         elif shift < 0:
             result[y:y+20, :shift] = frame[y:y+20, -shift:]
     
-    # Random color channel corruption
     if np.random.random() > 0.7:
         corrupt_channel = np.random.randint(0, 3)
         y = np.random.randint(0, h - 50)
@@ -375,7 +369,6 @@ def apply_filter_m(frame):
     result = frame.copy()
     h = result.shape[0]
     
-    # Add dark scanlines
     for y in range(0, h, 3):
         result[y:y+1, :] = (result[y:y+1, :] * 0.5).astype(np.uint8)
     
@@ -383,8 +376,6 @@ def apply_filter_m(frame):
 
 def apply_filter_n(frame, hands_results):
     """Hand Trails"""
-    global trail_buffer
-    
     if not hasattr(apply_filter_n, 'trail_buffer'):
         apply_filter_n.trail_buffer = []
     
@@ -396,12 +387,10 @@ def apply_filter_n(frame, hands_results):
                 y = int(landmark.y * h)
                 apply_filter_n.trail_buffer.append((x, y, time.time()))
     
-    # Remove old trails (older than 1 second)
     current_time = time.time()
     apply_filter_n.trail_buffer = [(x, y, t) for x, y, t in apply_filter_n.trail_buffer 
                                     if current_time - t < 1.0]
     
-    # Draw trails
     for i, (x, y, t) in enumerate(apply_filter_n.trail_buffer):
         age = current_time - t
         alpha = 1.0 - age
@@ -420,23 +409,19 @@ def apply_filter_o(frame):
 def apply_filter_p(frame):
     """Color Channel Shift"""
     result = frame.copy()
-    # Swap channels
     result[:, :, 0], result[:, :, 2] = frame[:, :, 2].copy(), frame[:, :, 0].copy()
     return result
 
 def apply_filter_q(frame):
     """Cartoon Effect"""
-    # Bilateral filter for smoothing while keeping edges
     color = cv2.bilateralFilter(frame, 9, 250, 250)
     
-    # Edge detection
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.medianBlur(gray, 5)
     edges = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, 
                                    cv2.THRESH_BINARY, 9, 9)
     edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
     
-    # Combine
     cartoon = cv2.bitwise_and(color, edges)
     return cartoon
 
@@ -445,7 +430,6 @@ def apply_filter_s(frame, mask):
     h, w = frame.shape[:2]
     matrix_bg = np.zeros(frame.shape, dtype=np.uint8)
     
-    # Generate falling characters
     np.random.seed(int(time.time() * 20) % 1000)
     for x in range(0, w, 15):
         y = (int(time.time() * 100) + x * 37) % (h + 50) - 50
@@ -474,11 +458,9 @@ def apply_filter_u(frame):
     """Disco Lights"""
     h, w = frame.shape[:2]
     
-    # Create rotating colored lights
     t = time.time() * 2
     overlay = frame.copy().astype(np.float32)
     
-    # Multiple colored spotlights
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255)]
     
     for i, color in enumerate(colors):
@@ -486,7 +468,6 @@ def apply_filter_u(frame):
         cx = int(w / 2 + np.cos(angle) * w / 4)
         cy = int(h / 2 + np.sin(angle) * h / 4)
         
-        # Create gradient circle
         Y, X = np.ogrid[:h, :w]
         dist = np.sqrt((X - cx)**2 + (Y - cy)**2)
         spotlight = np.exp(-dist / 80)
@@ -601,17 +582,18 @@ while True:
         status = "ON" if active_filters[filter_num] else "OFF"
         print(f"Filter {filter_num}: {status}")
     
-    # Toggle filters with letter keys
-    elif ord('a') <= key <= ord('u'):
+    # Toggle filters with letter keys (skip 'r' as it's for reset)
+    elif ord('a') <= key <= ord('u') and chr(key) != 'r':
         filter_char = chr(key)
-        active_filters[filter_char] = not active_filters[filter_char]
-        status = "ON" if active_filters[filter_char] else "OFF"
-        print(f"Filter {filter_char}: {status}")
+        if filter_char in active_filters:
+            active_filters[filter_char] = not active_filters[filter_char]
+            status = "ON" if active_filters[filter_char] else "OFF"
+            print(f"Filter {filter_char}: {status}")
     
     # Reset all filters
     elif key == ord('r'):
-        active_filters = {i: False for i in range(10)}
-        active_filters.update({chr(ord('a') + i): False for i in range(20)})
+        for k in active_filters:
+            active_filters[k] = False
         print("All filters reset")
     
     # Quit (ESC key)
