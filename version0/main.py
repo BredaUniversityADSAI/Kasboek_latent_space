@@ -1,6 +1,6 @@
 import cv2
 import filters
-from filter_chooser import FilterChooser
+from random_filter_chooser import FilterChooser
 import sys
 
 print("\n" + "="*60)
