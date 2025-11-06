@@ -15,6 +15,7 @@ def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
     
     for i in range(samples):
         ret, frame = cap.read()
+        frame = cv2.flip(frame, 1)
         if not ret:
             continue
             
