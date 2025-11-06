@@ -8,8 +8,6 @@ from config import API_CONFIG, POEM_SETTINGS, DEBUG
 
 
 class LLMClient:
-    """Client for BUAS AI Assistant API"""
-
     def __init__(self):
         self.api_url = API_CONFIG["api_url"]
         self.assistant_key = API_CONFIG["assistant_key"]
@@ -136,4 +134,5 @@ class LLMClient:
         return """In the gaze lies a story
 Of what cannot be spoken
 A pattern that unfolds
+
 In the silence of looking"""
