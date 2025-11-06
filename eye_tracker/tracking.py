@@ -5,7 +5,6 @@ import time
 from collections import deque
 
 class EyeTracker:
-    # --- (All code from __init__ to process_frame is UNCHANGED) ---
     def __init__(self, flip=True):
         self.flip = flip
         self.mp_face_mesh = mp.solutions.face_mesh
@@ -65,9 +64,6 @@ class EyeTracker:
     def toggle_flip(self):
         self.flip = not self.flip
         return self.flip
-    
-    # (_nplm_to_xy, _center_of, _get_aspect_ratio, _eye_bbox, _normalize_by_eye, classify_gaze)
-    # ... (These helper functions are unchanged) ...
     def _nplm_to_xy(self, lm, idx, w, h):
         p = lm[idx]
         return np.array([p.x * w, p.y * h], dtype=np.float32)
@@ -111,7 +107,6 @@ class EyeTracker:
 
 
     def process_frame(self, frame, display_toggles, only_compute=False):
-        # --- (All code from start of function to Section 8 is UNCHANGED) ---
         
         if self.flip:
             frame = cv2.flip(frame, 1)
@@ -251,7 +246,7 @@ class EyeTracker:
                 cv2.putText(annotated, f"Mouth: {mouth_status}", (10, h-100), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 1)
 
-            # --- 8. MODIFIED: Visualization (Usage Hints) ---
+            # Visualization (Usage Hints)
             if not only_compute and display_toggles.get("hint_text", False):
                 # Get status
                 v_stat = "ON" if display_toggles.get("tracking_rects") else "OFF"
@@ -278,7 +273,7 @@ class EyeTracker:
                            cv2.FONT_HERSHEY_SIMPLEX, font_size, color, 1)
                 y_pos += line_height + 10 # Add a gap
 
-                # --- NEW: Add Controls Help Text ---
+                # Add Controls Help Text
                 cv2.putText(annotated, "--- Gestures ---", (10, y_pos), 
                            cv2.FONT_HERSHEY_SIMPLEX, font_size, color, 1)
                 y_pos += line_height
@@ -309,7 +304,6 @@ class EyeTracker:
                 y_pos += line_height
                 cv2.putText(annotated, "q: Quit", (10, y_pos), 
                            cv2.FONT_HERSHEY_SIMPLEX, font_size, color, 1)
-            # --- END OF MODIFIED SECTION ---
 
         return annotated, final_gaze_norm, gesture_event, raw_eye_offset
     
