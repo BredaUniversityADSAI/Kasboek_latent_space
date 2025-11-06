@@ -16,31 +16,39 @@ class EyeVisualizer:
         self.eye_tracker = EyeTracker(flip=True)
         self.gaze_trail = deque(maxlen=100)
 
-    def extract_eyes(self, frame, face_results):
-        """Extract and crop individual eye regions"""
+    def extract_eye_region(self, frame, face_results):
+        """Extract BOTH eyes in one region"""
         if not face_results.multi_face_landmarks:
-            return None, None
+            return None
 
         h, w = frame.shape[:2]
         lm = face_results.multi_face_landmarks[0].landmark
 
-        left_indices = [33, 133, 160, 159, 158, 157, 173, 144]
-        right_indices = [362, 263, 387, 386, 385, 384, 398, 373]
+        left_outer = 33
+        right_outer = 263
 
-        def crop_eye(indices, padding=30):
-            points = [(int(lm[i].x * w), int(lm[i].y * h)) for i in indices]
-            if not points:
-                return None
+        eye_landmarks = [
+            33, 133, 160, 159, 158, 157, 173, 144, 145, 153, 154, 155,
+            362, 263, 387, 386, 385, 384, 398, 373, 374, 380, 381, 382,
+            168, 6, 197, 195
+        ]
+        points = [(int(lm[i].x * w), int(lm[i].y * h)) for i in eye_landmarks]
 
-            xs, ys = zip(*points)
-            x_min = max(0, min(xs) - padding)
-            x_max = min(w, max(xs) + padding)
-            y_min = max(0, min(ys) - padding)
-            y_max = min(h, max(ys) + padding)
+        if not points:
+            return None
+        xs, ys = zip(*points)
 
-            return frame[y_min:y_max, x_min:x_max].copy()
+        padding_x = 40
+        padding_y = 30
 
-        return crop_eye(left_indices), crop_eye(right_indices)
+        x_min = max(0, min(xs) - padding_x)
+        x_max = min(w, max(xs) + padding_x)
+        y_min = max(0, min(ys) - padding_y)
+        y_max = min(h, max(ys) + padding_y)
+
+        eye_region = frame[y_min:y_max, x_min:x_max].copy()
+
+        return eye_region
 
     def apply_filter(self, eye_img, filter_type="neon"):
         """Apply artistic filter to eye image"""
@@ -59,26 +67,42 @@ class EyeVisualizer:
             gray = cv2.cvtColor(eye_img, cv2.COLOR_BGR2GRAY)
             return cv2.applyColorMap(gray, cv2.COLORMAP_JET)
 
+        elif filter_type == "ascii":
+            gray = cv2.cvtColor(eye_img, cv2.COLOR_BGR2GRAY)
+            result = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+            h, w = result.shape[:2]
+            for y in range(0, h, 8):
+                for x in range(0, w, 6):
+                    brightness = gray[min(y, h-1), min(x, w-1)]
+                    char = self._brightness_to_char(brightness)
+                    cv2.putText(result, char, (x, y),
+                              cv2.FONT_HERSHEY_SIMPLEX, 0.2, (0, 255, 0), 1)
+            return result
+
         return eye_img
 
+    def _brightness_to_char(self, brightness):
+        """Convert brightness to ASCII character"""
+        chars = " .:!*oe%&#@"
+        idx = int((brightness / 255) * (len(chars) - 1))
+        return chars[idx]
+
     def create_eye_display(self, frame, filter_type="neon"):
-        """Create display showing both eyes with filters"""
+        """Create display showing BOTH eyes in one frame"""
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         face_results = self.eye_tracker.face_mesh.process(rgb_frame)
 
-        left_eye, right_eye = self.extract_eyes(frame, face_results)
+        eye_region = self.extract_eye_region(frame, face_results)
 
-        if left_eye is None or right_eye is None:
+        if eye_region is None:
             return np.zeros((200, 400, 3), dtype=np.uint8)
 
-        eye_size = (200, 150)
-        left_resized = cv2.resize(left_eye, eye_size)
-        right_resized = cv2.resize(right_eye, eye_size)
+        display_size = (400, 200)
+        eye_resized = cv2.resize(eye_region, display_size)
 
-        left_filtered = self.apply_filter(left_resized, filter_type)
-        right_filtered = self.apply_filter(right_resized, filter_type)
+        filtered = self.apply_filter(eye_resized, filter_type)
 
-        return np.hstack([left_filtered, right_filtered])
+        return filtered
 
     def draw_gaze_trail(self, canvas, gaze_info):
         """Draw live gaze trajectory"""
@@ -91,8 +115,8 @@ class EyeVisualizer:
         if smoothed_norm is not None:
             x = int((smoothed_norm[0] + 0.5) * w)
             y = int((smoothed_norm[1] + 0.5) * h)
-            x = np.clip(x, 0, w - 1)
-            y = np.clip(y, 0, h - 1)
+            x = np.clip(x, 0, w-1)
+            y = np.clip(y, 0, h-1)
 
             self.gaze_trail.append((x, y, time.time()))
 
@@ -102,9 +126,9 @@ class EyeVisualizer:
         if len(points) > 1:
             for i in range(len(points) - 1):
                 age = i / len(points)
-                color = (int(255 * age), int(128 * age), int(255 * (1 - age)))
+                color = (int(255 * age), int(128 * age), int(255 * (1-age)))
                 thickness = max(1, int(3 * age))
-                cv2.line(canvas, points[i], points[i + 1], color, thickness)
+                cv2.line(canvas, points[i], points[i+1], color, thickness)
 
         if points:
             cv2.circle(canvas, points[-1], 8, (0, 255, 255), -1)
@@ -122,9 +146,9 @@ class EyeVisualizer:
             speed = gaze_info.get('saccade_speed', 0)
 
             cv2.putText(canvas, f"Direction: {direction}", (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
             cv2.putText(canvas, f"Speed: {speed:.3f}", (10, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         return canvas
 
