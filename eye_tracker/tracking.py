@@ -227,12 +227,18 @@ class EyeTracker:
                     cv2.putText(annotated, "SACCADE", (10, h-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
                 
                 # Show visual toggle status
-                cv2.putText(annotated, "Visuals: ON (press 'v' to toggle)", (10, 30), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                cv2.putText(annotated, "Visuals: ON (press 'v' to toggle)", (10, 130), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (229, 24, 24), 1)
             elif not only_compute and not self.show_visuals:
                 # Minimal display when visuals are off
-                cv2.putText(annotated, "Visuals: OFF (press 'v' to toggle)", (10, 30), 
+                cv2.putText(annotated, "Visuals: OFF (press 'v' to toggle)", (10, 130), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (128, 128, 128), 1)
+                # Text overlay
+                txt = f"Dir: {direction}  Saccades: {self.saccade_count}  Speed: {saccade_speed:.3f}"
+                cv2.putText(annotated, txt, (10, h-40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (240, 240, 240), 2)
+                
+                if is_saccade:
+                    cv2.putText(annotated, "SACCADE", (10, h-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
         
         return annotated, gaze_norm
     
