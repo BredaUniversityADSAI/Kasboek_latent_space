@@ -5,9 +5,7 @@ import os
 
 class GazePainter:
     def __init__(self, width=1280, height=720, dwell_radius=0.03):
-        """
-        Initialize the gaze painter with a canvas
-        """
+        # (Rest of __init__ is unchanged)
         self.w = width
         self.h = height
         self.canvas = np.ones((self.h, self.w, 3), dtype=np.uint8) * 255
@@ -15,23 +13,25 @@ class GazePainter:
         self.prev_time = None
         self.dwell_time = 0.0
         self.dwell_radius = dwell_radius
-        self.stroke_color = (0, 0, 0)  # Black in BGR
-        self.stroke_history = []  # Store stroke points for smoother lines
-        self.pen_down = False # --- NEW: Start with pen UP ---
+        self.stroke_color = (0, 0, 0)
+        self.stroke_history = []
+        self.pen_down = False
         
     def clear(self):
-        """Clear the canvas"""
+        # (clear method is unchanged)
         self.canvas[:] = 255
         self.prev_point = None
         self.prev_time = None
         self.dwell_time = 0.0
         self.stroke_history = []
-        self.pen_down = False # Reset pen state
+        self.pen_down = False
     
     def save(self, filename='gaze_art.png'):
         """Save the canvas to a file in saved_images folder"""
-        # --- NEW: Check if canvas is empty ---
-        if not self.stroke_history:
+        
+        # Check if any pixel is NOT white (255).
+        # np.any(self.canvas < 255) is a fast way to check if anything was drawn.
+        if not np.any(self.canvas < 255):
             print("Canvas is empty, not saving.")
             return None
             
@@ -45,13 +45,12 @@ class GazePainter:
         return filepath
     
     def set_pen(self, is_down):
-        """--- NEW: Set the pen state ---"""
+        # (set_pen method is unchanged)
         if self.pen_down == is_down:
-            return # No change
-        
+            return
         self.pen_down = is_down
-        self.prev_point = None # Break the line
-        self.stroke_history = [] if not is_down else self.stroke_history # Keep history if pen down
+        self.prev_point = None
+        self.stroke_history = [] if not is_down else self.stroke_history
         print(f"Pen set to: {'DOWN' if is_down else 'UP'}")
     
     def update(self, gaze_norm, dt):
@@ -59,24 +58,26 @@ class GazePainter:
         Update the drawing based on normalized gaze position.
         gaze_norm should be (x, y) in [0, 1] range
         """
-        # --- NEW: Check pen state ---
         if not self.pen_down:
-            self.prev_point = None # Ensure no line is drawn
+            # (Rest of pen up logic is unchanged)
+            self.prev_point = None
             self.dwell_time = 0.0
             self.stroke_history = []
             return
             
         if gaze_norm is None:
+            # (Rest of no gaze logic is unchanged)
             self.prev_point = None
             self.dwell_time = 0.0
             return
         
-        # Map normalized coordinates to canvas pixels
+        # gaze_norm is now the combined head/eye position.
+        # It can be outside [0, 1], so we clip it here.
         gx = int(np.clip(gaze_norm[0], 0, 1) * self.w)
         gy = int(np.clip(gaze_norm[1], 0, 1) * self.h)
         cur_point = (gx, gy)
         
-        # Initialize on first point (after pen down)
+        # (Rest of update logic is unchanged)
         if self.prev_point is None:
             self.prev_point = cur_point
             self.prev_time = time.time()
@@ -84,21 +85,18 @@ class GazePainter:
             self.stroke_history = [cur_point]
             return
         
-        # Calculate distance in normalized space
         dx = (cur_point[0] - self.prev_point[0]) / float(self.w)
         dy = (cur_point[1] - self.prev_point[1]) / float(self.h)
         dist = np.hypot(dx, dy)
         
-        # Update dwell time
         if dist < self.dwell_radius:
             self.dwell_time += dt
         else:
             self.dwell_time = 0.0
         
-        # Calculate line width based on dwell time and movement speed
         base_width = 2
         dwell_bonus = int(min(20, self.dwell_time * 10))
-        speed_factor = max(0.2, min(1.0, dist * 50))  # Slower = thicker
+        speed_factor = max(0.2, min(1.0, dist * 50))
         line_width = int((base_width + dwell_bonus) * (2.0 - speed_factor))
         line_width = max(1, min(40, line_width))
         
@@ -122,11 +120,8 @@ class GazePainter:
         self.prev_point = cur_point
     
     def get_display(self, frame=None, overlay=False):
-        """
-        Get display image - either canvas alone or overlaid on frame
-        """
+        # (get_display method is unchanged)
         if overlay and frame is not None:
-            # (Rest of this function is unchanged)
             ch, cw = frame.shape[:2]
             resized = cv2.resize(self.canvas, (cw, ch))
             gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
@@ -141,22 +136,18 @@ class GazePainter:
             return self.canvas
     
     def set_color(self, color):
-        """Set stroke color (BGR tuple)"""
+        # (set_color method is unchanged)
         self.stroke_color = color
     
     def get_canvas_with_cursor(self, gaze_norm):
-        """
-        Get canvas with a cursor indicator at current gaze position
-        """
+        # (get_canvas_with_cursor method is unchanged, but clipping is more important)
         display = self.canvas.copy()
         
         if gaze_norm is not None:
             gx = int(np.clip(gaze_norm[0], 0, 1) * self.w)
             gy = int(np.clip(gaze_norm[1], 0, 1) * self.h)
             
-            # --- NEW: Change cursor color based on pen state ---
-            cursor_color = (0, 0, 255) if self.pen_down else (0, 255, 0) # Red=Down, Green=Up
-            
+            cursor_color = (0, 0, 255) if self.pen_down else (0, 255, 0)
             cursor_size = 20
             cv2.line(display, (gx - cursor_size, gy), (gx + cursor_size, gy), cursor_color, 1)
             cv2.line(display, (gx, gy - cursor_size), (gx, gy + cursor_size), cursor_color, 1)
