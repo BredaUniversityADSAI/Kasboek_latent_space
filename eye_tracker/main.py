@@ -21,7 +21,7 @@ def print_controls():
     print("\n" + "="*60)
     print("EYE TRACKER CONTROLS:")
     print("="*60)
-    print("c - Run calibration (look at center)")
+    print("c - Run calibration (look at center/camera)")
     print("d - Toggle drawing mode")
     print("v - Toggle visual overlays (tracking visualization)")
     print("r - Reset (clear canvas in drawing mode, reset calibration otherwise)")
