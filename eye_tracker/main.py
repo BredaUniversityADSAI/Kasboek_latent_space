@@ -7,14 +7,18 @@ from calibration import run_automatic_calibration
 from drawing import GazePainter
 from utils import load_calibration, ensure_directories
 
-# (Constants are unchanged)
+# State constants
 STATE_TRACKING = 1
 STATE_CALIBRATING = 2
 STATE_DRAWING = 3
+
+# Configuration flags
 DRAWING_IN_SEPARATE_WINDOW = True
 CALIBRATION_IS_OVERLAY = True
-DRAWING_TIME_LIMIT_SEC = 10.0
+
+# --- MODIFIED: Time limits ---
 NO_GAZE_EXIT_SEC = 1.0
+INACTIVITY_EXIT_SEC = 10.0 # Exit if pen is UP for this long
 
 def print_controls():
     """Print control instructions"""
@@ -22,14 +26,15 @@ def print_controls():
     print("EYE TRACKER CONTROLS:")
     print("="*60)
     print("--- Gestures ---")
-    print("Long Blink (>0.5s): Toggle Drawing Mode (like 'd')")
-    print("Open Mouth (Quickly): Toggle Pen (Up/Down)")
-    print("Look Away (>1s)    : Auto-save and exit drawing mode")
+    print(f"Long Blink (>0.5s) : Toggle Drawing Mode (like 'd')")
+    print(f"Open Mouth (Quickly): Toggle Pen (Up/Down)")
+    print(f"Look Away (>1s)     : Auto-save and exit drawing mode")
+    print(f"Pen Up (>10s)       : Auto-save and exit drawing mode")
     print("\n--- Keyboard (Click 'Eye Tracker' window to use) ---")
     print("c - Run calibration (look at center/camera)")
     print("d - Toggle drawing mode")
     print("v - Toggle visual overlays (eye tracking)")
-    print("g - Toggle gesture visuals (head/mouth tracking)") # --- NEW ---
+    print("g - Toggle gesture visuals (head/mouth tracking)")
     print("r - Reset (clear canvas in drawing mode, reset calibration otherwise)")
     print("s - Save drawing (in drawing mode)")
     print("f - Toggle frame flip (mirror mode)")
@@ -81,8 +86,10 @@ def main():
     last_time = time.time()
     frame_count = 0
     fps = 0
+    
+    # --- MODIFIED: Timers ---
     no_gaze_timer = 0.0
-    drawing_start_time = 0.0
+    inactivity_timer = 0.0
     
     print_controls()
     
@@ -102,11 +109,9 @@ def main():
                 fps = 30 / dt / 30
                 frame_count = 0
             
-            # --- MODIFIED: Accept 4 return values ---
-            # We only need gaze_norm (final) and gesture_event here
             annotated, gaze_norm, gesture_event, _ = tracker.process_frame(frame, only_compute=(current_state == STATE_CALIBRATING))
             
-            # (STATE_TRACKING logic is unchanged)
+            # (STATE_TRACKING and STATE_CALIBRATING are unchanged)
             if current_state == STATE_TRACKING:
                 display = annotated.copy()
                 cv2.putText(display, 'MODE: TRACKING', (10, 70), 
@@ -126,10 +131,10 @@ def main():
             elif current_state == STATE_CALIBRATING:
                 pass 
             
-            # (STATE_DRAWING logic is unchanged, it already uses gaze_norm)
             elif current_state == STATE_DRAWING:
-                elapsed_drawing_time = now - drawing_start_time
+                # --- MODIFIED: Auto-stop logic ---
                 
+                # 1. No Gaze Timer
                 if gaze_norm is None:
                     no_gaze_timer += dt
                     if no_gaze_timer > NO_GAZE_EXIT_SEC:
@@ -137,20 +142,31 @@ def main():
                         continue 
                 else:
                     no_gaze_timer = 0.0
-                    painter.update(gaze_norm, dt) # gaze_norm is now the combined head/eye
+                    painter.update(gaze_norm, dt)
                 
-                if elapsed_drawing_time > DRAWING_TIME_LIMIT_SEC:
-                    current_state = exit_drawing_mode(painter, reason=f"Time limit ({DRAWING_TIME_LIMIT_SEC}s) reached.")
-                    continue
+                # 2. Inactivity Timer (Pen Up)
+                if not painter.pen_down:
+                    inactivity_timer += dt
+                    if inactivity_timer > INACTIVITY_EXIT_SEC:
+                        current_state = exit_drawing_mode(painter, reason=f"Inactivity limit ({INACTIVITY_EXIT_SEC}s) reached.")
+                        continue
+                else:
+                    inactivity_timer = 0.0 # Reset timer if pen is down
                 
+                # --- MODIFIED: Display logic ---
                 if DRAWING_IN_SEPARATE_WINDOW:
                     display = annotated.copy()
                     cv2.putText(display, 'MODE: DRAWING', (10, 40), 
                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
                     
-                    time_left = DRAWING_TIME_LIMIT_SEC - elapsed_drawing_time
-                    cv2.putText(display, f'Time Left: {time_left:.1f}s', (10, 70), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1)
+                    # Show inactivity timer only when pen is up
+                    if not painter.pen_down:
+                        time_left = INACTIVITY_EXIT_SEC - inactivity_timer
+                        cv2.putText(display, f'Stop in: {time_left:.1f}s', (10, 70), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 1) # Orange
+                    else:
+                        cv2.putText(display, 'Drawing...', (10, 70), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 1) # Green
                     
                     pen_status = "DOWN (Drawing)" if painter.pen_down else "UP (Open mouth to toggle)"
                     pen_color = (0, 0, 255) if painter.pen_down else (0, 255, 0)
@@ -162,20 +178,22 @@ def main():
                     canvas_display = painter.get_canvas_with_cursor(gaze_norm)
                     cv2.imshow('Gaze Canvas', canvas_display)
                 else:
+                    # (Overlay mode unchanged)
                     blended = painter.get_display(annotated, overlay=True)
                     cv2.putText(blended, 'MODE: DRAWING (Overlay)', (10, 40), 
                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
                     cv2.imshow('Eye Tracker', blended)
             
-            # (Gesture event handling is unchanged)
+            # (Gesture handling is unchanged)
             if gesture_event == 'long_blink':
                 print("Gesture: Long Blink detected!")
                 if current_state == STATE_DRAWING:
                     current_state = exit_drawing_mode(painter, reason="Gesture toggle.")
                 else:
                     current_state = STATE_DRAWING
-                    drawing_start_time = time.time() 
-                    no_gaze_timer = 0.0 
+                    # --- MODIFIED: Reset new timer ---
+                    no_gaze_timer = 0.0
+                    inactivity_timer = 0.0 
                     painter.clear() 
                     painter.set_pen(False)
                     if DRAWING_IN_SEPARATE_WINDOW:
@@ -188,15 +206,15 @@ def main():
                     current_pen_state = painter.pen_down
                     painter.set_pen(not current_pen_state)
             
-            # (Keyboard input handling)
+            # (Keyboard input)
             key = cv2.waitKey(1) & 0xFF
             
             if key == ord('q'):
                 print("Quitting...")
                 break
             
-            # (Key 'c' logic is unchanged)
             elif key == ord('c'):
+                # (Unchanged)
                 print("\nStarting calibration...")
                 current_state = STATE_CALIBRATING
                 new_calib = run_automatic_calibration(tracker, cap, samples=30, overlay=CALIBRATION_IS_OVERLAY)
@@ -207,14 +225,14 @@ def main():
                     print("Calibration failed. Please try again.")
                 current_state = STATE_TRACKING
             
-            # (Key 'd' logic is unchanged)
             elif key == ord('d'):
                 if current_state == STATE_DRAWING:
                     current_state = exit_drawing_mode(painter, reason="Key 'd' pressed.")
                 else:
+                    # --- MODIFIED: Reset new timer ---
                     current_state = STATE_DRAWING
-                    drawing_start_time = time.time()
                     no_gaze_timer = 0.0
+                    inactivity_timer = 0.0
                     painter.clear()
                     painter.set_pen(False)
                     if DRAWING_IN_SEPARATE_WINDOW:
@@ -222,23 +240,23 @@ def main():
                         cv2.resizeWindow('Gaze Canvas', 640, 360)
                     print("Entered drawing mode")
             
-            # (Key 'v' logic is unchanged)
             elif key == ord('v'):
+                # (Unchanged)
                 show = tracker.toggle_visuals()
                 print(f"Tracking visuals: {'ON' if show else 'OFF'}")
             
-            # --- NEW: Key 'g' handler ---
             elif key == ord('g'):
+                # (Unchanged)
                 show = tracker.toggle_gesture_visuals()
                 print(f"Gesture visuals: {'ON' if show else 'OFF'}")
                 
-            # (Key 'f' logic is unchanged)
             elif key == ord('f'):
+                # (Unchanged)
                 flip = tracker.toggle_flip()
                 print(f"Frame flip (mirror): {'ON' if flip else 'OFF'}")
             
-            # (Key 'r' logic is unchanged)
             elif key == ord('r'):
+                # (Unchanged)
                 if current_state == STATE_DRAWING:
                     painter.clear()
                     print("Canvas cleared")
@@ -254,8 +272,8 @@ def main():
                     else:
                         print("No calibration to reset")
             
-            # (Key 's' logic is unchanged)
             elif key == ord('s'):
+                # (Unchanged)
                 if current_state == STATE_DRAWING:
                     save_drawing(painter)
                 else:
