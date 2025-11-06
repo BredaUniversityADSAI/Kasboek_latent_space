@@ -12,6 +12,15 @@ def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
     
     start_time = time.time()
     
+    # --- NEW: Define a default toggle state for calibration ---
+    # We pass this, but only_compute=True means it won't be used
+    default_toggles = {
+        "tracking_rects": False,
+        "debug_text": False,
+        "misc_text": False,
+        "hint_text": False,
+    }
+    
     for i in range(samples):
         ret, frame = cap.read()
         frame = cv2.flip(frame, 1)
@@ -21,17 +30,15 @@ def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
         if tracker.flip:
             frame = cv2.flip(frame, 1)
             
-        # --- MODIFIED: Accept 4 return values ---
-        # We only care about annotated (for display) and raw_eye_offset (for data)
-        annotated, _, _, raw_eye_offset = tracker.process_frame(frame, only_compute=True)
+        # --- MODIFIED: Pass default_toggles ---
+        annotated, _, _, raw_eye_offset = tracker.process_frame(
+            frame, default_toggles, only_compute=True
+        )
         
-        # --- MODIFIED: Use raw_eye_offset ---
         if raw_eye_offset is not None:
-            # Convert [0, 0] centered offset to [0.5, 0.5] centered
-            # This maintains consistency with the original calibration logic
             collected.append(raw_eye_offset + 0.5)
         
-        # (Rest of display logic is unchanged)
+        # (Rest of calibration logic is unchanged)
         if overlay:
             display = annotated.copy() if annotated is not None else frame.copy()
             progress = int((i / samples) * 100)
@@ -44,12 +51,10 @@ def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
         cv2.waitKey(30)
     
     if collected:
-        # (Rest of calculation logic is unchanged)
         arr = np.array(collected)
         mean = arr.mean(axis=0)
         stds = arr.std(axis=0)
         
-        # This center value isn't used, but the stds are
         center_offset_from_0_5 = mean - 0.5
         print(f"Mean eye offset (from center): {center_offset_from_0_5}")
 
@@ -58,7 +63,7 @@ def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
         deadzone = max(0.018, np.mean(stds) * 2.0)
         
         calibration_data = {
-            'center': mean.tolist(), # This is the [0,1] range mean
+            'center': mean.tolist(),
             'horiz_threshold': float(horiz_thr),
             'vert_threshold': float(vert_thr),
             'deadzone': float(deadzone),
