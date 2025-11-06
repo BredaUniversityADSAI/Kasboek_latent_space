@@ -15,7 +15,7 @@ class GazePainter:
         self.prev_time = None
         self.dwell_time = 0.0
         self.dwell_radius = dwell_radius
-        self.stroke_color = (0, 0, 255)  # Blue in BGR
+        self.stroke_color = (0, 0, 0)  # Black in BGR
         self.stroke_history = []  # Store stroke points for smoother lines
         
     def clear(self):
