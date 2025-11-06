@@ -28,16 +28,20 @@ class EyeVisualizer:
         right_outer = 263
 
         eye_landmarks = [
+            # Left eye
             33, 133, 160, 159, 158, 157, 173, 144, 145, 153, 154, 155,
+            # Right eye
             362, 263, 387, 386, 385, 384, 398, 373, 374, 380, 381, 382,
+            # Bridge area
             168, 6, 197, 195
         ]
+
         points = [(int(lm[i].x * w), int(lm[i].y * h)) for i in eye_landmarks]
 
         if not points:
             return None
-        xs, ys = zip(*points)
 
+        xs, ys = zip(*points)
         padding_x = 40
         padding_y = 30
 
@@ -96,10 +100,8 @@ class EyeVisualizer:
 
         if eye_region is None:
             return np.zeros((200, 400, 3), dtype=np.uint8)
-
         display_size = (400, 200)
         eye_resized = cv2.resize(eye_region, display_size)
-
         filtered = self.apply_filter(eye_resized, filter_type)
 
         return filtered
