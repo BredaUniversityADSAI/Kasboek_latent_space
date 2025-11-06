@@ -99,15 +99,6 @@ def validate_config():
     """
     errors = []
 
-    # Check API keys are set
-    if API_CONFIG["user_key"] == "PASTE_YOUR_USER_KEY_HERE":
-        errors.append("USER_KEY not set in config.py")
-        errors.append("   Get it from: https://ai-assistants.buas.nl/ (user icon → View user information)")
-
-    if API_CONFIG["assistant_key"] == "PASTE_YOUR_ASSISTANT_KEY_HERE":
-        errors.append(" ASSISTANT_KEY not set in config.py")
-        errors.append("   Get it from any community assistant URL")
-        errors.append("   URL format: https://ai-assistants.buas.nl/#/assistant/YOUR_KEY")
 
     # Check file paths
     import os
@@ -168,4 +159,5 @@ if __name__ == "__main__":
     else:
         print("✗ CONFIGURATION INVALID")
         print("\nPlease fix the errors above")
+
     print("=" * 70 + "\n")
