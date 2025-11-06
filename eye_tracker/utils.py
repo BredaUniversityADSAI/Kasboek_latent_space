@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # Define folder paths
-CALIBRATION_DIR = './calibrations'
+CALIBRATION_DIR = './eye_tracker/calibrations'
 SAVED_IMAGES_DIR = './saved_images'
 CALIBRATION_JSON = os.path.join(CALIBRATION_DIR, 'calibration.json')
 
