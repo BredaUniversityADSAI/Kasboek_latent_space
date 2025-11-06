@@ -7,18 +7,22 @@ from calibration import run_automatic_calibration
 from drawing import GazePainter
 from utils import load_calibration, ensure_directories
 
-# State constants
+# (Constants are unchanged)
 STATE_TRACKING = 1
 STATE_CALIBRATING = 2
 STATE_DRAWING = 3
-
-# Configuration flags
 DRAWING_IN_SEPARATE_WINDOW = True
 CALIBRATION_IS_OVERLAY = True
-
-# --- MODIFIED: Time limits ---
 NO_GAZE_EXIT_SEC = 1.0
-INACTIVITY_EXIT_SEC = 10.0 # Exit if pen is UP for this long
+INACTIVITY_EXIT_SEC = 10.0
+
+# --- NEW: Display Toggle States ---
+display_toggles = {
+    "tracking_rects": True, # 'v' - All visual trackers
+    "debug_text": True,     # 't' - Saccades, direction, EAR/MAR
+    "misc_text": True,      # 'm' - FPS, Mode, Pen status
+    "hint_text": True,      # 'h' - All "(press 'x' to toggle)" hints
+}
 
 def print_controls():
     """Print control instructions"""
@@ -33,12 +37,15 @@ def print_controls():
     print("\n--- Keyboard (Click 'Eye Tracker' window to use) ---")
     print("c - Run calibration (look at center/camera)")
     print("d - Toggle drawing mode")
-    print("v - Toggle visual overlays (eye tracking)")
-    print("g - Toggle gesture visuals (head/mouth tracking)")
     print("r - Reset (clear canvas in drawing mode, reset calibration otherwise)")
     print("s - Save drawing (in drawing mode)")
     print("f - Toggle frame flip (mirror mode)")
     print("q - Quit")
+    print("\n--- Display Toggles ---")
+    print("v - Toggle Tracking Visuals (rects, arrows, etc.)")
+    print("t - Toggle Debug Text (direction, saccades, EAR/MAR)")
+    print("m - Toggle Misc Text (FPS, mode, pen status)")
+    print("h - Toggle Usage Hints")
     print("="*60 + "\n")
 
 # (save_drawing and exit_drawing_mode are unchanged)
@@ -86,8 +93,6 @@ def main():
     last_time = time.time()
     frame_count = 0
     fps = 0
-    
-    # --- MODIFIED: Timers ---
     no_gaze_timer = 0.0
     inactivity_timer = 0.0
     
@@ -109,22 +114,27 @@ def main():
                 fps = 30 / dt / 30
                 frame_count = 0
             
-            annotated, gaze_norm, gesture_event, _ = tracker.process_frame(frame, only_compute=(current_state == STATE_CALIBRATING))
+            # --- MODIFIED: Pass toggles to tracker ---
+            annotated, gaze_norm, gesture_event, _ = tracker.process_frame(
+                frame, display_toggles, only_compute=(current_state == STATE_CALIBRATING)
+            )
             
-            # (STATE_TRACKING and STATE_CALIBRATING are unchanged)
             if current_state == STATE_TRACKING:
                 display = annotated.copy()
-                cv2.putText(display, 'MODE: TRACKING', (10, 70), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (229, 24, 24), 2)
-                cv2.putText(display, f'FPS: {fps:.1f}', (10, 20), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
                 
-                if calibration:
-                    cv2.putText(display, 'Calibrated', (10, 100), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (229, 24, 24), 1)
-                else:
-                    cv2.putText(display, 'Not calibrated (press c)', (10, 100), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 1)
+                # --- MODIFIED: Conditional Text ---
+                if display_toggles["misc_text"]:
+                    cv2.putText(display, 'MODE: TRACKING', (10, 70), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.8, (229, 24, 24), 2)
+                    cv2.putText(display, f'FPS: {fps:.1f}', (10, 20), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+                    
+                    if calibration:
+                        cv2.putText(display, 'Calibrated', (10, 100), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (229, 24, 24), 1)
+                    else:
+                        cv2.putText(display, 'Not calibrated (press c)', (10, 100), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 1)
                 
                 cv2.imshow('Eye Tracker', display)
             
@@ -132,9 +142,7 @@ def main():
                 pass 
             
             elif current_state == STATE_DRAWING:
-                # --- MODIFIED: Auto-stop logic ---
-                
-                # 1. No Gaze Timer
+                # (Auto-stop logic is unchanged)
                 if gaze_norm is None:
                     no_gaze_timer += dt
                     if no_gaze_timer > NO_GAZE_EXIT_SEC:
@@ -144,44 +152,45 @@ def main():
                     no_gaze_timer = 0.0
                     painter.update(gaze_norm, dt)
                 
-                # 2. Inactivity Timer (Pen Up)
                 if not painter.pen_down:
                     inactivity_timer += dt
                     if inactivity_timer > INACTIVITY_EXIT_SEC:
                         current_state = exit_drawing_mode(painter, reason=f"Inactivity limit ({INACTIVITY_EXIT_SEC}s) reached.")
                         continue
                 else:
-                    inactivity_timer = 0.0 # Reset timer if pen is down
+                    inactivity_timer = 0.0
                 
-                # --- MODIFIED: Display logic ---
+                # --- MODIFIED: Conditional Text ---
                 if DRAWING_IN_SEPARATE_WINDOW:
                     display = annotated.copy()
-                    cv2.putText(display, 'MODE: DRAWING', (10, 40), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
                     
-                    # Show inactivity timer only when pen is up
-                    if not painter.pen_down:
-                        time_left = INACTIVITY_EXIT_SEC - inactivity_timer
-                        cv2.putText(display, f'Stop in: {time_left:.1f}s', (10, 70), 
-                                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 1) # Orange
-                    else:
-                        cv2.putText(display, 'Drawing...', (10, 70), 
-                                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 1) # Green
-                    
-                    pen_status = "DOWN (Drawing)" if painter.pen_down else "UP (Open mouth to toggle)"
-                    pen_color = (0, 0, 255) if painter.pen_down else (0, 255, 0)
-                    cv2.putText(display, f'Pen: {pen_status}', (10, 90), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, pen_color, 1)
-                               
+                    if display_toggles["misc_text"]:
+                        cv2.putText(display, 'MODE: DRAWING', (10, 40), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
+                        
+                        if not painter.pen_down:
+                            time_left = INACTIVITY_EXIT_SEC - inactivity_timer
+                            cv2.putText(display, f'Stop in: {time_left:.1f}s', (10, 70), 
+                                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 1)
+                        else:
+                            cv2.putText(display, 'Drawing...', (10, 70), 
+                                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 1)
+                        
+                        pen_status = "DOWN (Drawing)" if painter.pen_down else "UP (Open mouth to toggle)"
+                        pen_color = (0, 0, 255) if painter.pen_down else (0, 255, 0)
+                        cv2.putText(display, f'Pen: {pen_status}', (10, 90), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, pen_color, 1)
+                                   
                     cv2.imshow('Eye Tracker', display)
                     
                     canvas_display = painter.get_canvas_with_cursor(gaze_norm)
                     cv2.imshow('Gaze Canvas', canvas_display)
                 else:
-                    # (Overlay mode unchanged)
+                    # (Overlay mode)
                     blended = painter.get_display(annotated, overlay=True)
-                    cv2.putText(blended, 'MODE: DRAWING (Overlay)', (10, 40), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
+                    if display_toggles["misc_text"]:
+                        cv2.putText(blended, 'MODE: DRAWING (Overlay)', (10, 40), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
                     cv2.imshow('Eye Tracker', blended)
             
             # (Gesture handling is unchanged)
@@ -191,7 +200,6 @@ def main():
                     current_state = exit_drawing_mode(painter, reason="Gesture toggle.")
                 else:
                     current_state = STATE_DRAWING
-                    # --- MODIFIED: Reset new timer ---
                     no_gaze_timer = 0.0
                     inactivity_timer = 0.0 
                     painter.clear() 
@@ -206,7 +214,7 @@ def main():
                     current_pen_state = painter.pen_down
                     painter.set_pen(not current_pen_state)
             
-            # (Keyboard input)
+            # --- Keyboard input ---
             key = cv2.waitKey(1) & 0xFF
             
             if key == ord('q'):
@@ -226,10 +234,10 @@ def main():
                 current_state = STATE_TRACKING
             
             elif key == ord('d'):
+                # (Unchanged)
                 if current_state == STATE_DRAWING:
                     current_state = exit_drawing_mode(painter, reason="Key 'd' pressed.")
                 else:
-                    # --- MODIFIED: Reset new timer ---
                     current_state = STATE_DRAWING
                     no_gaze_timer = 0.0
                     inactivity_timer = 0.0
@@ -240,16 +248,24 @@ def main():
                         cv2.resizeWindow('Gaze Canvas', 640, 360)
                     print("Entered drawing mode")
             
+            # --- MODIFIED: New Toggle Keys ---
             elif key == ord('v'):
-                # (Unchanged)
-                show = tracker.toggle_visuals()
-                print(f"Tracking visuals: {'ON' if show else 'OFF'}")
+                display_toggles["tracking_rects"] = not display_toggles["tracking_rects"]
+                print(f"Tracking Visuals: {'ON' if display_toggles['tracking_rects'] else 'OFF'}")
             
-            elif key == ord('g'):
-                # (Unchanged)
-                show = tracker.toggle_gesture_visuals()
-                print(f"Gesture visuals: {'ON' if show else 'OFF'}")
-                
+            elif key == ord('t'):
+                display_toggles["debug_text"] = not display_toggles["debug_text"]
+                print(f"Debug Text: {'ON' if display_toggles['debug_text'] else 'OFF'}")
+
+            elif key == ord('m'):
+                display_toggles["misc_text"] = not display_toggles["misc_text"]
+                print(f"Misc Text: {'ON' if display_toggles['misc_text'] else 'OFF'}")
+
+            elif key == ord('h'):
+                display_toggles["hint_text"] = not display_toggles["hint_text"]
+                print(f"Usage Hints: {'ON' if display_toggles['hint_text'] else 'OFF'}")
+            # --- END MODIFIED ---
+            
             elif key == ord('f'):
                 # (Unchanged)
                 flip = tracker.toggle_flip()
