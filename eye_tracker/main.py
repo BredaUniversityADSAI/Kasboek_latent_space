@@ -94,14 +94,14 @@ def main():
                 display = annotated.copy()
                 
                 # Add mode and status info
-                cv2.putText(display, 'MODE: TRACKING', (10, 40), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-                cv2.putText(display, f'FPS: {fps:.1f}', (10, 70), 
+                cv2.putText(display, 'MODE: TRACKING', (10, 70), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (229, 24, 24), 2)
+                cv2.putText(display, f'FPS: {fps:.1f}', (10, 20), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
                 
                 if calibration:
                     cv2.putText(display, 'Calibrated', (10, 100), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 1)
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (229, 24, 24), 1)
                 else:
                     cv2.putText(display, 'Not calibrated (press c)', (10, 100), 
                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 1)
