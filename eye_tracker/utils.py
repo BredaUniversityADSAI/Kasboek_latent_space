@@ -2,7 +2,7 @@ import json
 import os
 import numpy as np
 
-CALIBRATION_JSON = 'calibration.json'
+CALIBRATION_JSON = './calibration.json'
 
 def save_calibration(data, path=CALIBRATION_JSON):
     with open(path, 'w') as f:
