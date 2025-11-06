@@ -23,7 +23,8 @@ def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
             frame = cv2.flip(frame, 1)
             
         # Process frame to get gaze data
-        annotated, gaze_norm = tracker.process_frame(frame, only_compute=True)
+        # --- THIS IS THE CORRECTED LINE ---
+        annotated, gaze_norm, _ = tracker.process_frame(frame, only_compute=True)
         
         if gaze_norm is not None:
             collected.append(gaze_norm)
