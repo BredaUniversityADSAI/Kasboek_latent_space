@@ -1,0 +1,27 @@
+# Core dependencies for computer vision and eye tracking
+opencv-python>=4.8.0
+mediapipe>=0.10.0
+numpy>=1.24.0
+
+# Data processing and analysis
+pandas>=2.0.0
+openpyxl>=3.1.0  # For reading Excel files
+
+# Machine learning for image classification
+tensorflow>=2.13.0  # For ResNet50 model in analysis.py
+
+# Visualization
+matplotlib>=3.7.0  # For heatmap generation
+
+# API and web requests
+requests>=2.31.0
+
+# Text-to-Speech options
+gtts>=2.3.0  # Google Text-to-Speech (simpler option)
+google-cloud-texttospeech>=2.14.0  # Google Cloud TTS (more advanced)
+
+# Audio processing
+soundfile>=0.12.0  # For audio file handling
+
+# Scientific computing
+scipy>=1.10.0  # May be needed for signal processing
