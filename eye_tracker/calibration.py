@@ -5,13 +5,21 @@ from utils import save_calibration
 
 def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
     """
-    Simplified calibration - only captures center gaze, no directional looks.
-    Matches the style from the provided reference code.
+    Calibrates the *eye gaze offset* (self.smoothed).
     """
     collected = []
     print("Calibration: Please look at the center of the screen for ~2 seconds...")
     
     start_time = time.time()
+    
+    # --- NEW: Define a default toggle state for calibration ---
+    # We pass this, but only_compute=True means it won't be used
+    default_toggles = {
+        "tracking_rects": False,
+        "debug_text": False,
+        "misc_text": False,
+        "hint_text": False,
+    }
     
     for i in range(samples):
         ret, frame = cap.read()
@@ -22,13 +30,15 @@ def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
         if tracker.flip:
             frame = cv2.flip(frame, 1)
             
-        # Process frame to get gaze data
-        annotated, gaze_norm = tracker.process_frame(frame, only_compute=True)
+        # --- MODIFIED: Pass default_toggles ---
+        annotated, _, _, raw_eye_offset = tracker.process_frame(
+            frame, default_toggles, only_compute=True
+        )
         
-        if gaze_norm is not None:
-            collected.append(gaze_norm)
+        if raw_eye_offset is not None:
+            collected.append(raw_eye_offset + 0.5)
         
-        # Show calibration progress if overlay is enabled
+        # (Rest of calibration logic is unchanged)
         if overlay:
             display = annotated.copy() if annotated is not None else frame.copy()
             progress = int((i / samples) * 100)
@@ -41,13 +51,14 @@ def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
         cv2.waitKey(30)
     
     if collected:
-        # Calculate mean and standard deviation for thresholds
         arr = np.array(collected)
         mean = arr.mean(axis=0)
         stds = arr.std(axis=0)
         
-        # Set thresholds based on observed variance (similar to reference code)
-        horiz_thr = max(0.035, stds[0] * 3.0)  # Default or 3x std
+        center_offset_from_0_5 = mean - 0.5
+        print(f"Mean eye offset (from center): {center_offset_from_0_5}")
+
+        horiz_thr = max(0.035, stds[0] * 3.0)
         vert_thr = max(0.028, stds[1] * 3.0)
         deadzone = max(0.018, np.mean(stds) * 2.0)
         
@@ -62,10 +73,8 @@ def run_automatic_calibration(tracker, cap, samples=30, overlay=True):
         print(f"Calibration complete: Center at {mean}")
         print(f"Thresholds - Horiz: {horiz_thr:.4f}, Vert: {vert_thr:.4f}, Deadzone: {deadzone:.4f}")
         
-        # Save calibration to file
         save_calibration(calibration_data)
         
-        # Update tracker thresholds
         tracker.horiz_thr = horiz_thr
         tracker.vert_thr = vert_thr
         tracker.deadzone = deadzone
