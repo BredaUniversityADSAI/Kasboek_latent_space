@@ -41,7 +41,7 @@
         
         .scribble-container {
             width: 100%;
-            max-width: 525px;
+            max-width: 600px;
         }
         
         .scribble-container img {
@@ -56,6 +56,7 @@
             border-collapse: separate;
             border-spacing: 10px;
             margin-top: 0px;
+            margin-bottom: 0px;
         }
         
         .grid-item {
@@ -109,7 +110,7 @@
             text-align: center;
             color: #000000;
             font-size: 0.85em;
-            margin-top: 50px;
+            margin-top: 0px;
             font-style: italic;
         }
         
@@ -182,10 +183,6 @@
                     <div class="psychoanalysis-text" id="psychoanalysisText">
                         The intertwining lines suggest a subconscious wrestling with identity and permanence. The signature, neither fully formed nor entirely abstract, reveals the artist's ambivalence toward self-definition.
                     </div>
-                    <audio id="psychoanalysisAudio" controls style="width: 100%; margin-top: 20px;">
-                        <source src="" type="audio/mpeg">
-                        Your browser does not support the audio element.
-                    </audio>
                 </td>
                 
                 <!-- Right column: Poem and Heatmap stacked -->
@@ -278,13 +275,13 @@ No two the same, yet all the same.</div>
                 }
                 
                 // Update audio files
-                if (data.psychoanalysisAudio) {
-                    const psychoAudio = document.getElementById('psychoanalysisAudio');
-                    psychoAudio.src = data.psychoanalysisAudio + '?t=' + Date.now();
-                    psychoAudio.load();
-                    // Auto-play psychoanalysis audio
-                    psychoAudio.play().catch(e => console.log('Auto-play blocked:', e));
-                }
+                //if (data.psychoanalysisAudio) {
+                //    const psychoAudio = document.getElementById('psychoanalysisAudio');
+                //    psychoAudio.src = data.psychoanalysisAudio + '?t=' + Date.now();
+                //    psychoAudio.load();
+                //    // Auto-play psychoanalysis audio
+                //    psychoAudio.play().catch(e => console.log('Auto-play blocked:', e));
+                //}
                 
                 if (data.poemAudio) {
                     const poemAudio = document.getElementById('poemAudio');

@@ -40,7 +40,7 @@ text-to-speech, heatmap generation, and updating the website
         ASSISTANT_KEY_POESIE, USER_KEY, init_endpoint_url_poesie, ask_endpoint_url_poesie, headers = credentials('8c1cdd40-14e7-460b-acaf-0f874f50703e')
         response_dpa = initialize_ai_assistant(ASSISTANT_KEY_DPA, USER_KEY, init_endpoint_url_dpa, headers)
         response_poesie = initialize_ai_assistant(ASSISTANT_KEY_POESIE, USER_KEY, init_endpoint_url_poesie, headers)
-        tts_client, voice, audio_config = tts_setup(voice_variant='A')
+        tts_client, voice, audio_config = tts_setup()
         logging.info("Setup complete!")
 
         # Run classification
@@ -60,7 +60,6 @@ text-to-speech, heatmap generation, and updating the website
 
         # Text-to-speech
         logging.info("Starting text-to-speech...")
-        dpa_filename = run_tts(client=tts_client, voice=voice, audio_config=audio_config, text=psychoanalysis, output="psychoanalysis")
         poem_filename = run_tts(client=tts_client, voice=voice, audio_config=audio_config, text=poem, output="poem")
         logging.info("Text-to-speech complete!")
 
@@ -76,7 +75,6 @@ text-to-speech, heatmap generation, and updating the website
             "heatmapPath": "heatmap.png",
             "psychoanalysis": psychoanalysis,
             "poem": poem,
-            "psychoanalysisAudio": dpa_filename,
             "poemAudio": poem_filename,
             "timestamp": datetime.now().isoformat()
         }
