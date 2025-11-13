@@ -3,8 +3,8 @@ venv/
 __pycache__/
 *.pyc
 .env
+image_analysis_pipeline/kasboek-logo.png
 image_analysis_pipeline/content.json
 image_analysis_pipeline/image.png
 image_analysis_pipeline/heatmap.png
 image_analysis_pipeline/installation.log
-image_analysis_pipeline/kasboek_logo.png
