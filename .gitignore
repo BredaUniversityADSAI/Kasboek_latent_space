@@ -8,3 +8,12 @@ image.png
 heatmap.png
 installation.log
 image_analysis_pipeline/docs/*
+image_analysis_pipeline/test_images
+contact.md
+image_analysis_pipeline/output.mp3
+image_analysis_pipeline/rendered_index.html
+main_old.py
+rt_transcription.py
+rt_transcription.py
+test.py
+tts_old.py
