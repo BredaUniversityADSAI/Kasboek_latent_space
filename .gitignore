@@ -3,7 +3,6 @@ venv/
 __pycache__/
 *.pyc
 .env
-kasboek-logo.png
 content.json
 image.png
 heatmap.png
