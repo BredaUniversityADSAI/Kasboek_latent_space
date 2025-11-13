@@ -1,7 +1,7 @@
 from google.cloud import texttospeech
 import os
 
-def tts_setup(voice_variant='A', speaking_rate=1.0, pitch=0.0):
+def gc_tts_setup(voice_id='en-US-Chirp3-HD-Zephyr', voice_variant='A', speaking_rate=1.0, pitch=0.0):
     '''
     Configure Google Cloud credentials and TTS properties
 
@@ -22,7 +22,7 @@ def tts_setup(voice_variant='A', speaking_rate=1.0, pitch=0.0):
     # Set up voice parameters
     voice = texttospeech.VoiceSelectionParams(
         language_code="en-US",
-        name=f"en-US-Chirp3-HD-Zephyr",
+        name=f"{voice_id}",
         ssml_gender=texttospeech.SsmlVoiceGender.FEMALE
     )
 
@@ -35,7 +35,7 @@ def tts_setup(voice_variant='A', speaking_rate=1.0, pitch=0.0):
 
     return client, voice, audio_config
 
-def run_tts(client, voice, audio_config, text: str, output: str):
+def run_gc_tts(client, voice, audio_config, text: str, output: str):
 
     '''
     Synthetize speech from the given text

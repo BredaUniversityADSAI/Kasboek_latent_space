@@ -20,7 +20,7 @@
         
         body {
             font-family: 'Korolev Medium', 'Arial', sans-serif;
-            background-color: #f5f5f0;
+            background-color: #00000000;
             color: #2a2a2a;
             line-height: 1.6;
         }
@@ -60,7 +60,7 @@
         }
         
         .grid-item {
-            background: white;
+            background: rgba(255, 255, 255, 0);
             padding: 20px;
             box-shadow: none;
             vertical-align: top;
@@ -179,7 +179,7 @@
             <tr>
                 <!-- Left column: Psychoanalysis -->
                 <td class="grid-item" style="width: 55%;">
-                    <h2 class="section-title">Psychoanalysis</h2>
+                    <h2 class="section-title">Analysis</h2>
                     <div class="psychoanalysis-text" id="psychoanalysisText">
                         The intertwining lines suggest a subconscious wrestling with identity and permanence. The signature, neither fully formed nor entirely abstract, reveals the artist's ambivalence toward self-definition.
                     </div>
@@ -288,10 +288,10 @@ No two the same, yet all the same.</div>
                     poemAudio.src = data.poemAudio + '?t=' + Date.now();
                     poemAudio.load();
                     // Auto-play poem audio after psychoanalysis finishes
-                    const psychoAudio = document.getElementById('psychoanalysisAudio');
-                    psychoAudio.onended = function() {
-                        poemAudio.play().catch(e => console.log('Auto-play blocked:', e));
-                    };
+                    //const psychoAudio = document.getElementById('psychoanalysisAudio');
+                    //psychoAudio.onended = function() {
+                    //    poemAudio.play().catch(e => console.log('Auto-play blocked:', e));
+                    //};
                 }
                 
                 // Update timestamp
@@ -332,6 +332,13 @@ No two the same, yet all the same.</div>
                 btn.disabled = false;
             });
         }
+    // Print functionality with 'P' key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'p' || event.key === 'P') {
+        event.preventDefault(); // Prevent default browser print shortcut
+        window.print();
+    }
+});
     </script>
 </body>
 </html>
