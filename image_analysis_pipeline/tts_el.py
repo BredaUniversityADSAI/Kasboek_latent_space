@@ -1,7 +1,7 @@
 from elevenlabs.client import ElevenLabs
 import os
 
-def el_tts_setup():
+def el_tts_setup(location):
     '''
     Initialize ElevenLabs client
 
@@ -12,7 +12,7 @@ def el_tts_setup():
         client: ElevenLabs client
     '''
 
-    with open('.env', 'r') as env:
+    with open(location, 'r') as env:
         api_key = env.readlines()[0].split('=')[1].strip()
     client = ElevenLabs(api_key=api_key)
 

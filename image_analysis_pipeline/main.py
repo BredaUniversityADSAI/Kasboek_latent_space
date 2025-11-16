@@ -1,4 +1,4 @@
-from chat import *
+from chat import LLMModel
 from analysis import run_classification
 from tts_gc import gc_tts_setup, run_gc_tts
 from tts_el import el_tts_setup, run_el_tts
@@ -11,6 +11,41 @@ import asyncio
 from pathlib import Path
 from playwright.async_api import async_playwright
 import json
+from elevenlabs import ElevenLabs
+
+# Logger initialization
+main_logger = logging.getLogger("image_analysis_pipeline")
+main_logger.setLevel(logging.INFO)
+
+response_logger = logging.getLogger('request_responses')
+response_logger.setLevel(logging.INFO)
+
+prediction_logger = logging.getLogger("predictions")
+prediction_logger.setLevel(logging.INFO)
+
+credits_logger = logging.getLogger("credits")
+credits_logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler("installation.log")
+formatter = logging.Formatter('%(asctime)s;%(name)s;%(levelname)s;%(message)s')
+file_handler.setFormatter(formatter)
+main_logger.addHandler(file_handler)
+
+file_handler = logging.FileHandler("responses.log")
+formatter = logging.Formatter('%(asctime)s;%(name)s;%(levelname)s;%(message)s')
+file_handler.setFormatter(formatter)
+response_logger.addHandler(file_handler)
+
+file_handler = logging.FileHandler("predictions.csv")
+formatter = logging.Formatter('%(asctime)s;%(message)s')
+file_handler.setFormatter(formatter)
+prediction_logger.addHandler(file_handler)
+
+file_handler = logging.FileHandler("credits.csv")
+formatter = logging.Formatter('%(asctime)s;%(name)s;%(levelname)s;%(message)s')
+file_handler.setFormatter(formatter)
+credits_logger.addHandler(file_handler)
+
 
 # URL served by python -m http.server
 URL = "http://localhost:8000/index.html"
@@ -75,12 +110,12 @@ def save_print_pdf(url=URL, out_dir='docs'):
     try:
         return asyncio.run(_render(url, out_dir))
     except Exception as e:
-        logging.error(f"Failed to render PDF: {e}")
+        main_logger.error(f"Failed to render PDF: {e}")
         return None
 
 def run_analysis_pipeline():
     '''
-    Function to run the pipeline: logger initialization, model initialization, classification, psychoanalysis, poem writing, \
+    Function to run the pipeline: main_logger initialization, model initialization, classification, psychoanalysis, poem writing, \
 text-to-speech, heatmap generation, and updating the website
 
     Params:
@@ -90,65 +125,75 @@ text-to-speech, heatmap generation, and updating the website
         True/False: depends on whether the pipeline ran successfully
     '''
 
-
-    # Logger initialization
-    logging.basicConfig(filename='installation.log', level=logging.INFO, 
-                       format='%(asctime)s;%(name)s;%(levelname)s;%(message)s')
     start_time = datetime.now()
-    logging.info(f"Started script at {start_time}")
+    main_logger.info(f"Started analysis pipeline at {start_time}")
 
     image = "image.png"
 
     try:
-        # Logger initialization
-        logging.basicConfig(filename='installation.log', level=logging.INFO, format='%(asctime)s;%(name)s;%(levelname)s;%(message)s')
-        start_time = datetime.now()
-        logging.info(f"Started script at {start_time}")
-
         # Model setup
-        # dpa: (d)er (P)sycho(a)nalytiker
-        # poesie: name of the poet, meaning 'poetry' in French
-        logging.info("Setting up models...")
-        ASSISTANT_KEY_DPA, USER_KEY, init_endpoint_url_dpa, ask_endpoint_url_dpa, headers = credentials('8a79f5ec-c5dd-448c-9611-99610792a04b')
-        ASSISTANT_KEY_POESIE, USER_KEY, init_endpoint_url_poesie, ask_endpoint_url_poesie, headers = credentials('959058ad-4417-49e3-9e71-252ee2fb033d')
-        response_dpa = initialize_ai_assistant(ASSISTANT_KEY_DPA, USER_KEY, init_endpoint_url_dpa, headers)
-        response_poesie = initialize_ai_assistant(ASSISTANT_KEY_POESIE, USER_KEY, init_endpoint_url_poesie, headers)
-        #client = el_tts_setup()
-        logging.info("Setup complete!")
+        main_logger.info("Setting up models")
+        analysis_model = LLMModel('8a79f5ec-c5dd-448c-9611-99610792a04b')
+        poem_model = LLMModel('959058ad-4417-49e3-9e71-252ee2fb033d')
+        init_response_a = analysis_model.initialize()
+        response_logger.info(init_response_a)
+        init_response_p = poem_model.initialize()
+        response_logger.info(init_response_p)
+        client = el_tts_setup('kui/.env')
+        main_logger.info("Setup complete")
 
         # Run classification
-        logging.info("Starting classification...")
+        main_logger.info("Starting classification")
         label = run_classification(f'{image}')
-        logging.info(f"Result of the classification: {label}")
+        prediction_logger.info(label)
+        main_logger.info(f"Result of the classification: {label}")
 
-        # Psychoanalysis
-        logging.info("Starting psychoananalysis...")
-        psychoanalysis = chat_with_ai_assistant(response=response_dpa, message=label, USER_KEY=USER_KEY, ask_endpoint_url=ask_endpoint_url_dpa, ASSISTANT_KEY=ASSISTANT_KEY_DPA, headers=headers)
-        logging.info("Psychanalysis complete!")
+        # Analysis
+        main_logger.info("Starting analysis")
+        analysis = analysis_model.chat(message=label)
+        main_logger.info("Analysis complete")
 
         # Poem
-        logging.info("Starting writing the poem...")
-        poem = chat_with_ai_assistant(response=response_poesie, message=psychoanalysis, USER_KEY=USER_KEY, ask_endpoint_url=ask_endpoint_url_poesie, ASSISTANT_KEY=ASSISTANT_KEY_POESIE, headers=headers)
-        logging.info("Poem complete!")
+        main_logger.info("Starting writing the poem")
+        poem = poem_model.chat(analysis)
+        main_logger.info("Poem complete")
+
+        try:
+            with open('.env', 'r') as env:
+                api_key = env.readlines()[0].split('=')[1].strip()
+            el_client = ElevenLabs(api_key=api_key)
+            user_before = el_client.user.get()
+            credits_before = user_before.subscription.character_count
+        except Exception as e:
+            credits_logger.error(f"Could not get credits before TTS: {e}")
+            credits_before = None
 
         # Text-to-speech
-        #logging.info("Starting text-to-speech...")
+        #main_logger.info("Starting text-to-speech")
         #poem_filename = run_el_tts(client=client, text=poem)
-        #logging.info("Text-to-speech complete!")
+        #main_logger.info("Text-to-speech complete")
+
+        try:
+            user_after = el_client.user.get()
+            credits_after = user_after.subscription.character_count
+            credits_used = credits_after - credits_before if credits_before else len(poem)
+            credits_logger.info(f"{credits_before};{credits_after};{credits_used}")
+        except Exception as e:
+            credits_logger.error(f"Could not calculate credits used: {e}")
 
         # Generate heatmap
-        logging.info("Generating heatmap...")
+        main_logger.info("Generating heatmap")
         heatmap_filename = draw_heatmap()
-        logging.info("Heatmap complete!")
+        main_logger.info("Heatmap complete")
 
         # Generate content.json for website
-        logging.info("Updating website...")
+        main_logger.info("Updating website")
         website_data = {
             "scribblePath": f'{image}',
             "heatmapPath": heatmap_filename,
-            "psychoanalysis": psychoanalysis,
+            "psychoanalysis": analysis,
             "poem": poem,
-            "poemAudio": "output.mp3", # variable!
+            "poemAudio": poem_filename, # variable!
             "timestamp": datetime.now().isoformat()
         }
         
@@ -156,21 +201,21 @@ text-to-speech, heatmap generation, and updating the website
         with open('content.json', 'w', encoding='utf-8') as f:
             json.dump(website_data, f, indent=2, ensure_ascii=False)
         
-        logging.info("Website updated!")
+        main_logger.info("Website updated")
 
         # create print-view PDF and save into docs/
         pdf_file = save_print_pdf(URL, out_dir='docs')
         if pdf_file:
-            logging.info(f"Saved print PDF: {pdf_file}")
+            main_logger.info(f"Saved print PDF: {pdf_file}")
             website_data['printPDF'] = pdf_file.replace('\\', '/')
             with open('content.json', 'w', encoding='utf-8') as f:
                 json.dump(website_data, f, indent=2, ensure_ascii=False)
 
-        logging.info(f"Program concluded in {datetime.now() - start_time}.")
+        main_logger.info(f"Program concluded in {datetime.now() - start_time}")
         return True
     
     except Exception as e:
-        logging.error(f"Error during analysis: {str(e)}")
+        main_logger.error(f"Error during analysis: {str(e)}")
         print(f"Error occurred: {str(e)}")
         return False
 
