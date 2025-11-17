@@ -185,6 +185,15 @@ class ArtInstallationApp:
             model_key = '8a79f5ec-c5dd-448c-9611-99610792a04b' if self.model_var.get() == "Analysis Model" else '959058ad-4417-49e3-9e71-252ee2fb033d'
             
             model = LLMModel(model_key)
+
+            try:
+                init_response = model.initialize()
+                print(f"Init response: {init_response}")
+            except Exception as init_error:
+                print(f"Initialize error: {init_error}")
+                import traceback
+                traceback.print_exc()
+                raise
             model.initialize()
             
             # Clear and populate fields
@@ -335,6 +344,7 @@ class ArtInstallationApp:
             
             with open('.env', 'r') as env:
                 api_key = env.readlines()[0].split('=')[1].strip()
+                print("API key", api_key)
             client = ElevenLabs(api_key=api_key)
             user_info = client.user.get()
             subscription = user_info.subscription

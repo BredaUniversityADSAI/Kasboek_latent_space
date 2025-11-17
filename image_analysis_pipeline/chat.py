@@ -1,18 +1,20 @@
 import requests
 import json
+import os
 
 class LLMModel:
 
     _attributes = ["name", "description", "purpose", "expertise",
         "capabilities", "restrictions", "additional",
         "llm", "creativity"]
-    
-    def __init__(self, key):
-        with open('.env', 'r') as file:
-            access_token = file.readlines()[1].split('=')[1]
-        with open('.env', 'r') as file:
-            user_key = file.readlines()[2].split('=')[1]
 
+    def __init__(self, key):
+
+        with open('.env', 'r') as file:
+            access_token = file.readlines()[1].split('=')[1].strip()
+        with open('.env', 'r') as file:
+            user_key = file.readlines()[2].split('=')[1].strip()
+        
         self.assistant_key = key
         self._user_key = user_key
         self._access_token = access_token
@@ -58,6 +60,8 @@ class LLMModel:
 
         assistant_params_response = requests.post(self.__assistant_configs_endpoint_url, data=json.dumps(assistant_params_data), headers=self.__headers)
         assistant_params_response = assistant_params_response.json()
+
+        print(f"Assistant params response: {assistant_params_response}")
 
         self._name = assistant_params_response["name"]
         self._description = assistant_params_response["description"]
