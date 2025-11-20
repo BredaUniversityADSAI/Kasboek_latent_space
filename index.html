@@ -1,344 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Latent Space, Through the Eyes of the Algorithm</title>
     <style>
-        @font-face {
-            font-family: 'Korolev Medium';
-            src: url('korolev-medium.otf') format('opentype');
-            font-weight: normal;
-            font-style: normal;
+        button {
+            width: 90%;
+            height: 100px;
+            font-size: 30px;
+            margin: 20px;
+            border-radius: 10px;
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Korolev Medium', 'Arial', sans-serif;
-            background-color: #00000000;
-            color: #2a2a2a;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px 20px;
-        }
-        
-        /* Main scribble section - centerpiece */
-        .scribble-section {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        
-        .scribble-container {
-            width: 100%;
-            max-width: 600px;
-        }
-        
-        .scribble-container img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        
-        /* Three visuals side by side below - using table */
-        .bottom-grid {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 10px;
-            margin-top: 0px;
-            margin-bottom: 0px;
-        }
-        
-        .grid-item {
-            background: rgba(255, 255, 255, 0);
-            padding: 20px;
-            box-shadow: none;
-            vertical-align: top;
-        }
-        
-        .section-title {
-            font-size: 0.8em;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            text-align: left;
-            font-weight: 600;
-            color: #666;
-        }
-        
-        /* Psychoanalysis - left */
-        .psychoanalysis-text {
-            text-align: justify;
-            font-size: 0.8em;
-            line-height: 1.4;
-        }
-        
-        /* Heatmap - center */
-        .heatmap-container {
-            display: flex;
-            justify-content: left;
-            align-items: left;
-            height: 100%;
-        }
-        
-        .heatmap-container img {
-            width: 50%;
-            height: auto;
-            object-fit: contain;
-        }
-        
-        /* Poem - right */
-        .poem-text {
-            font-style: italic;
-            white-space: pre-line;
-            line-height: 1.5;
-            font-size: 0.8em;
-            text-align: left;
-        }
-        
-        .update-info {
-            text-align: center;
-            color: #000000;
-            font-size: 0.85em;
-            margin-top: 0px;
-            font-style: italic;
-        }
-        
-        .refresh-btn {
-            background: #2a2a2a;
-            color: white;
-            border: none;
-            padding: 10px 25px;
-            cursor: pointer;
-            font-size: 0.9em;
-            margin-top: 15px;
-            transition: background 0.3s;
-            font-family: inherit;
-        }
-        
-        .refresh-btn:hover {
-            background: #444;
-        }
-        
-        @media (max-width: 1024px) {
-            .bottom-grid {
-                flex-direction: column;
-                gap: 25px;
-            }
-            
-            .grid-item {
-                min-height: auto;
-            }
-        }
-        
-        @media print {
-            audio {
-                display: none;
-            }
-            
-            .update-info {
-                display: block;
-            }
-        }
-        
-        /* Loading state */
-        .loading {
-            opacity: 0.5;
-            transition: opacity 0.3s;
-        }
+        .print { background: green; color: white; }
+        .cancel { background: red; color: white; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Main scribble centerpiece -->
-        <div class="scribble-section">
-            <div class="scribble-container">
-                <img id="mainScribble" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='800' viewBox='0 0 600 800'%3E%3Crect fill='%23ffffff' width='600' height='800'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='serif' font-size='20' fill='%23999'%3EScribble will appear here%3C/text%3E%3C/svg%3E" alt="Signature scribble">
-            </div>
-        </div>
-        
-        <!-- Page title below scribble -->
-        <header style="text-align: center; margin-bottom: 0px;">
-            <h1 style="font-size: 1.5em; font-weight: 400; letter-spacing: 2px; color: #2a2a2a; font-family: 'Korolev Medium', 'Arial', sans-serif;">
-                Latent Space, Through the Eyes of the Algorithm
-            </h1>
-        </header>
-        
-        <!-- Two columns below: Psychoanalysis left, Poem+Heatmap right -->
-        <table class="bottom-grid">
-            <tr>
-                <!-- Left column: Psychoanalysis -->
-                <td class="grid-item" style="width: 55%;">
-                    <h2 class="section-title">Analysis</h2>
-                    <div class="psychoanalysis-text" id="psychoanalysisText">
-                        The intertwining lines suggest a subconscious wrestling with identity and permanence. The signature, neither fully formed nor entirely abstract, reveals the artist's ambivalence toward self-definition.
-                    </div>
-                </td>
-                
-                <!-- Right column: Poem and Heatmap stacked -->
-                <td class="grid-item" style="width: 45%;">
-                    <h2 class="section-title">Poem</h2>
-                    <div class="poem-text" id="poemText">A mark, a trace, a whispered name—
-Ink flows where thought and hand became
-One gesture in the light's dim frame,
-No two the same, yet all the same.</div>
-                    <audio id="poemAudio" controls style="width: 100%; margin-top: 20px;">
-                        <source src="" type="audio/mpeg">
-                        Your browser does not support the audio element.
-                    </audio>
-                    
-                    <!-- Heatmap below poem -->
-                    <div style="margin-top: 30px;">
-                        <h2 class="section-title" style="margin-bottom: 30px;">Attention Span</h2>
-                        <div class="heatmap-container">
-                            <img id="heatmapImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Crect fill='%23f0f0f0' width='300' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='serif' font-size='14' fill='%23999'%3EHeatmap%3C/text%3E%3C/svg%3E" alt="Heatmap visualization">
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        </table>
-        
-        <div class="update-info">
-            <p><span id="lastUpdate">Waiting for data...</span></p>
-        </div>
-        
-        <!-- Logo at bottom right corner -->
-        <div style="position: fixed; bottom: 20px; right: 20px;">
-            <img src="kasboek-logo.jpg" alt="Kasboek '25" style="max-width: 150px; height: auto; opacity: 0.8;">
-        </div>
-    </div>
-    
-    <script>
-        // Configuration - Update these paths to match your pipeline output
-        const CONFIG = {
-            dataFile: 'shared_output/content.json',  // Path to your JSON data file
-            refreshInterval: 5000,     // Check for updates every 5 seconds
-        };
-        
-        let lastTimestamp = null;
-        
-        // Load content from your pipeline's output
-        async function loadContent() {
-            try {
-                // Add timestamp to prevent caching
-                const response = await fetch(CONFIG.dataFile + '?t=' + Date.now());
-                
-                if (!response.ok) {
-                    console.log('Waiting for pipeline to generate content.json...');
-                    return;
-                }
-                
-                const data = await response.json();
-                
-                // Check if content has changed
-                if (lastTimestamp === data.timestamp) {
-                    console.log('No new content, skipping update');
-                    return;
-                }
-                
-                console.log('New content detected! Updating...');
-                lastTimestamp = data.timestamp;
-                
-                // Update main scribble
-                if (data.scribblePath) {
-                    const scribbleImg = document.getElementById('mainScribble');
-                    scribbleImg.src = data.scribblePath + '?t=' + Date.now();
-                    console.log('Scribble updated:', data.scribblePath);
-                }
-                
-                // Update psychoanalysis
-                if (data.psychoanalysis) {
-                    document.getElementById('psychoanalysisText').textContent = data.psychoanalysis;
-                }
-                
-                // Update heatmap
-                if (data.heatmapPath) {
-                    const heatmapImg = document.getElementById('heatmapImage');
-                    // Add timestamp to prevent caching
-                    heatmapImg.src = data.heatmapPath + '?t=' + Date.now();
-                    console.log('Heatmap updated:', data.heatmapPath);
-                }
-                
-                // Update poem
-                if (data.poem) {
-                    document.getElementById('poemText').textContent = data.poem;
-                }
-                
-                // Update audio files
-                //if (data.psychoanalysisAudio) {
-                //    const psychoAudio = document.getElementById('psychoanalysisAudio');
-                //    psychoAudio.src = data.psychoanalysisAudio + '?t=' + Date.now();
-                //    psychoAudio.load();
-                //    // Auto-play psychoanalysis audio
-                //    psychoAudio.play().catch(e => console.log('Auto-play blocked:', e));
-                //}
-                
-                if (data.poemAudio) {
-                    const poemAudio = document.getElementById('poemAudio');
-                    poemAudio.src = data.poemAudio + '?t=' + Date.now();
-                    poemAudio.load();
-                    // Auto-play poem audio after psychoanalysis finishes
-                    //const psychoAudio = document.getElementById('psychoanalysisAudio');
-                    //psychoAudio.onended = function() {
-                    //    poemAudio.play().catch(e => console.log('Auto-play blocked:', e));
-                    //};
-                }
-                
-                // Update timestamp
-                const updateDate = new Date(data.timestamp);
-                document.getElementById('lastUpdate').textContent = updateDate.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                console.log('Content updated successfully');
-            } catch (error) {
-                console.log('Waiting for content.json...', error.message);
-            }
-        }
-        
-        // Auto-refresh content
-        function startAutoRefresh() {
-            setInterval(loadContent, CONFIG.refreshInterval);
-        }
-        
-        // Initialize
-        loadContent();
-        startAutoRefresh();
-        
-        // Manual refresh button
-        function manualRefresh() {
-            const btn = document.querySelector('.refresh-btn');
-            btn.textContent = 'Refreshing...';
-            btn.disabled = true;
-            
-            // Force refresh by clearing last timestamp
-            lastTimestamp = null;
-            loadContent().then(() => {
-                btn.textContent = 'Refresh Content';
-                btn.disabled = false;
-            });
-        }
-    // Print functionality with 'P' key
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'p' || event.key === 'P') {
-        event.preventDefault(); // Prevent default browser print shortcut
-        window.print();
-    }
-});
-    </script>
+
+<h1 style="font-size:40px;">Print Manager</h1>
+
+{% if file %}
+    <p style="font-size:20px;">New file ready: <strong>{{ file }}</strong></p>
+
+    <form action="/print" method="POST">
+        <button class="print">PRINT</button>
+    </form>
+
+    <form action="/cancel" method="POST">
+        <button class="cancel">CANCEL</button>
+    </form>
+{% else %}
+    <p style="font-size:20px;">No pending files.</p>
+{% endif %}
+
 </body>
 </html>
+
