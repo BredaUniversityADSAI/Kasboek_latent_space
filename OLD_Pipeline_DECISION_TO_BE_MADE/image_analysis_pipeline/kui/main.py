@@ -186,14 +186,6 @@ class ArtInstallationApp:
             
             model = LLMModel(model_key)
 
-            try:
-                init_response = model.initialize()
-                print(f"Init response: {init_response}")
-            except Exception as init_error:
-                print(f"Initialize error: {init_error}")
-                import traceback
-                traceback.print_exc()
-                raise
             model.initialize()
             
             # Clear and populate fields
@@ -297,7 +289,7 @@ class ArtInstallationApp:
                         messagebox.showwarning("Low Credits Warning", 
                                             f"Only {future_calls} TTS calls remaining!\nConsider refilling your ElevenLabs credits.")
                     
-                    title_text = f'ElevenLabs Credits\n({remaining}/{credits_data["total"]})\nAvg per call: {avg_credits:.0f} | Remaining calls (estimate): {future_calls}'
+                    title_text = f'ElevenLabs Credits\n({remaining}/{credits_data["total"]})\nAvg of credits used per call: {avg_credits:.0f} | Remaining calls (estimate): {future_calls}'
             else:
                 title_text = f'ElevenLabs Credits\n(Total: {credits_data["total"]})'
             
@@ -344,7 +336,7 @@ class ArtInstallationApp:
             
             with open('.env', 'r') as env:
                 api_key = env.readlines()[0].split('=')[1].strip()
-                print("API key", api_key)
+                #print("API key", api_key)
             client = ElevenLabs(api_key=api_key)
             user_info = client.user.get()
             subscription = user_info.subscription
@@ -373,7 +365,7 @@ class ArtInstallationApp:
             current_dir = Path(__file__).parent
             credits_csv = current_dir.parent / "credits.csv"
             
-            print(f"Looking for credits.csv at: {credits_csv}")
+            #print(f"Looking for credits.csv at: {credits_csv}")
             
             if not credits_csv.exists():
                 print("credits.csv not found")
@@ -383,12 +375,12 @@ class ArtInstallationApp:
             with open(credits_csv, 'r', encoding='utf-8') as f:
                 for line in f:
                     parts = line.strip().split(';')
-                    print(f"Parsed line: {parts}")
+                    #print(f"Parsed line: {parts}")
                     if len(parts) >= 6:
                         used = int(parts[4])  # Used credits
                         credits_used_list.append(used)
             
-            print(f"Credits used list: {credits_used_list}")
+            #print(f"Credits used list: {credits_used_list}")
             
             if not credits_used_list or len(credits_used_list) < 2:
                 print(f"Not enough data: {len(credits_used_list)} entries")
@@ -401,14 +393,14 @@ class ArtInstallationApp:
                 if diff > 0:  # Only count increases
                     credits_per_call.append(diff)
             
-            print(f"Credits per call: {credits_per_call}")
+            #print(f"Credits per call: {credits_per_call}")
             
             if not credits_per_call:
                 print("No credits per call data")
                 return None
             
             avg_credits = sum(credits_per_call) / len(credits_per_call)
-            print(f"Average credits: {avg_credits}")
+            #print(f"Average credits: {avg_credits}")
             return {
                 'avg_per_call': avg_credits,
                 'num_calls': len(credits_per_call)
@@ -525,7 +517,7 @@ class ArtInstallationApp:
                                    command=self.delete_all_prints)
         delete_button.pack(side=tk.LEFT, padx=10)
         
-        info_label = ttk.Label(self.docs_frame, text="Click on a document to open it", 
+        info_label = ttk.Label(self.docs_frame, text="Double-click on a document to open it", 
                               font=('Arial', 10, 'italic'))
         info_label.pack(pady=5)
         
@@ -548,7 +540,7 @@ class ArtInstallationApp:
         """Load user manual from file"""
         try:
             current_dir = Path(__file__).parent
-            manual_path = current_dir / "USER_MANUAL.md"
+            manual_path = current_dir / "contact.txt"
             
             with open(manual_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -562,7 +554,7 @@ class ArtInstallationApp:
         """Load contact information from file"""
         try:
             current_dir = Path(__file__).parent
-            contact_path = current_dir / "contact.md"
+            contact_path = current_dir / "contact.txt"
             
             with open(contact_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -665,22 +657,27 @@ class ArtInstallationApp:
             self.load_docs()
     
     def automatic_deletion(self):
-        """Automatically delete prints from today at 23:59"""
+        """Automatically delete prints from previous days upon starting"""
         current_dir = Path(__file__).parent
         prints_location = current_dir.parent / 'docs'
         
         date = int(str(datetime.now().date()).replace('-', ''))
-        time_str = str(datetime.now().time())[:5].replace(':', '')
-        time_int = int(time_str)
-        
-        if time_int == 2359:
-            try:
-                for file in os.listdir(prints_location):
-                    if f'print_{date}' in file:
-                        os.remove(prints_location / file)
-                        print(f"Auto-deleted: {file}")
-            except Exception as e:
-                print(f"Error during automatic deletion: {e}")
+
+        for file in os.listdir(prints_location):
+            if 'print_' in file:
+                if int(file[6:14]) < date:
+                    os.remove(f'{prints_location}/{file}')
+        #time_str = str(datetime.now().time())[:5].replace(':', '')
+        #time_int = int(time_str)
+        #
+        #if time_int == 2359:
+        #    try:
+        #        for file in os.listdir(prints_location):
+        #            if f'print_{date}' in file:
+        #                os.remove(prints_location / file)
+        #                print(f"Auto-deleted: {file}")
+        #    except Exception as e:
+        #        print(f"Error during automatic deletion: {e}")
     
     def start_automatic_deletion(self):
         """Start background thread for automatic deletion"""

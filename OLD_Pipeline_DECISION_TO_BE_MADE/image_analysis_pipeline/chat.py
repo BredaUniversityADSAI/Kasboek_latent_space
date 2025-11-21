@@ -61,7 +61,7 @@ class LLMModel:
         assistant_params_response = requests.post(self.__assistant_configs_endpoint_url, data=json.dumps(assistant_params_data), headers=self.__headers)
         assistant_params_response = assistant_params_response.json()
 
-        print(f"Assistant params response: {assistant_params_response}")
+        #print(f"Assistant params response: {assistant_params_response}")
 
         self._name = assistant_params_response["name"]
         self._description = assistant_params_response["description"]

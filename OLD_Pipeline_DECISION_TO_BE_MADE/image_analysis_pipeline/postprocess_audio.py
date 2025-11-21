@@ -22,14 +22,12 @@ def decrease_volume(audio_path: str, dB: int, output_path: str = None):
     silent_audio.export(output_path, format='mp3')
     print(f"Volume decreased by {dB}dB. Saved to {output_path}")
 
-#decrease_volume('output_rae_1.08.mp3', output_path='lower.mp3', dB=-10)
 
-def overlay_audio(audio1='output_rae.mp3', audio2='output_ryan.mp3', output_name='output.mp3'):
+def overlay_audio(audio1='output_ryan.mp3', audio2='output_rae.mp3', output_name='output.mp3'):
     audio1 = pydub.AudioSegment.from_file(audio1)
     audio2 = pydub.AudioSegment.from_file(audio2)
     output = audio2.overlay(audio1)
 
     output.export('output.mp3', format='mp3')
 
-
-overlay_audio(audio1='output_rae_0.92.mp3')
+    return output_name

@@ -12,7 +12,7 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 import json
 from elevenlabs import ElevenLabs
-#from postprocess_audio import decrease_volume
+from postprocess_audio import *
 
 # Logger initialization
 main_logger = logging.getLogger("image_analysis_pipeline")
@@ -172,15 +172,9 @@ text-to-speech, heatmap generation, and updating the website
         # Text-to-speech
         main_logger.info("Starting text-to-speech")
         # Rae
-        #poem_filename = run_el_tts(client=client, voice_id='45QiOxkuEAY6ckHqLMe8', output='output_rae_0.92.mp3', text="""Shadows merge with radiance in our shared space
-#A symphony of contrasts, no fixed pace
-#Turbulent echoes weave a tapestry so fine
-#In this realm, beauty's essence is redefined""", speed=1.2)
+        rae_filename = run_el_tts(client=client, voice_id='45QiOxkuEAY6ckHqLMe8', output='output_rae.mp3', text=poem, speed=1.2)
         # Ryan
-#        ryan_filename = run_el_tts(client=client, voice_id='tJHJUEHzOkMoPmJJ5jo2', text="""Shadows merge with radiance in our shared space
-#A symphony of contrasts, no fixed pace
-#Turbulent echoes weave a tapestry so fine
-#In this realm, beauty's essence is redefined""", output='output_ryan.mp3', speed=1.3)
+        ryan_filename = run_el_tts(client=client, voice_id='tJHJUEHzOkMoPmJJ5jo2', output='output_ryan.mp3', text=poem, speed=1.3)
         main_logger.info("Text-to-speech complete")
 
         try:
@@ -191,7 +185,10 @@ text-to-speech, heatmap generation, and updating the website
         except Exception as e:
             credits_logger.error(f"Could not calculate credits used: {e}")
 
-        #decrease_volume(ryan_filename, dB=-10)
+        main_logger.info("Post-processing TTS")
+        decrease_volume(ryan_filename, dB=-10)
+        poem_filename = overlay_audio(ryan_filename, rae_filename, output_name='output.mp3')
+        main_logger.info("Post-processing TTS complete")
 
         # Generate heatmap
         main_logger.info("Generating heatmap")
@@ -199,14 +196,13 @@ text-to-speech, heatmap generation, and updating the website
         main_logger.info("Heatmap complete")
 
         # Generate content.json for website
-        poem_filename = 'output.mp3'
         main_logger.info("Updating website")
         website_data = {
             "scribblePath": f'{image}',
             "heatmapPath": heatmap_filename,
             "psychoanalysis": analysis,
             "poem": poem,
-            "poemAudio": 'output.mp3', # variable!
+            "poemAudio": poem_filename, # variable!
             "timestamp": datetime.now().isoformat()
         }
         
@@ -217,6 +213,7 @@ text-to-speech, heatmap generation, and updating the website
         main_logger.info("Website updated")
 
         # create print-view PDF and save into docs/
+        main_logger.info("Rendering print version of the website")
         pdf_file = save_print_pdf(URL, out_dir='docs')
         if pdf_file:
             main_logger.info(f"Saved print PDF: {pdf_file}")
