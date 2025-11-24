@@ -13,6 +13,7 @@ from playwright.async_api import async_playwright
 import json
 from elevenlabs import ElevenLabs
 from postprocess_audio import *
+from preprocess_image import preprocess_image
 
 # Logger initialization
 main_logger = logging.getLogger("image_analysis_pipeline")
@@ -129,7 +130,7 @@ text-to-speech, heatmap generation, and updating the website
     start_time = datetime.now()
     main_logger.info(f"Started analysis pipeline at {start_time}")
 
-    image = "image.png"
+    image = preprocess_image()
 
     try:
         # Model setup
@@ -172,9 +173,9 @@ text-to-speech, heatmap generation, and updating the website
         # Text-to-speech
         main_logger.info("Starting text-to-speech")
         # Rae
-        rae_filename = run_el_tts(client=client, voice_id='45QiOxkuEAY6ckHqLMe8', output='output_rae.mp3', text=poem, speed=1.2)
+        #rae_filename = run_el_tts(client=client, voice_id='45QiOxkuEAY6ckHqLMe8', output='output_rae.mp3', text=poem, speed=1.2)
         # Ryan
-        ryan_filename = run_el_tts(client=client, voice_id='tJHJUEHzOkMoPmJJ5jo2', output='output_ryan.mp3', text=poem, speed=1.3)
+        #ryan_filename = run_el_tts(client=client, voice_id='tJHJUEHzOkMoPmJJ5jo2', output='output_ryan.mp3', text=poem, speed=1.3)
         main_logger.info("Text-to-speech complete")
 
         try:
@@ -186,8 +187,8 @@ text-to-speech, heatmap generation, and updating the website
             credits_logger.error(f"Could not calculate credits used: {e}")
 
         main_logger.info("Post-processing TTS")
-        decrease_volume(ryan_filename, dB=-10)
-        poem_filename = overlay_audio(ryan_filename, rae_filename, output_name='output.mp3')
+        #decrease_volume(ryan_filename, dB=-10)
+        #poem_filename = overlay_audio(ryan_filename, rae_filename, output_name='output.mp3')
         main_logger.info("Post-processing TTS complete")
 
         # Generate heatmap
@@ -196,6 +197,7 @@ text-to-speech, heatmap generation, and updating the website
         main_logger.info("Heatmap complete")
 
         # Generate content.json for website
+        poem_filename = 'output.mp3'
         main_logger.info("Updating website")
         website_data = {
             "scribblePath": f'{image}',
